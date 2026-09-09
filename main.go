@@ -60,6 +60,14 @@ func run(args []string) int {
 		return 0
 	}
 
+	if isHelp(args[1]) {
+		if err := skill.PrintScripts(os.Stdout, name, dir, meta); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+		return 0
+	}
+
 	if err := skill.Run(dir, meta, args[1], args[2:]); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		if code, ok := skill.ExitCode(err); ok {
@@ -74,10 +82,15 @@ func usage() string {
 	return `Usage:
   run-skill-script <skill> <script> [args...]
   run-skill-script <skill>
+  run-skill-script <skill> --help
   run-skill-script --list-skills
   run-skill-script --version
 
 Runs a script declared in the skill's meta.json.
 If meta.json is missing, the command exits without guessing a script path.
 `
+}
+
+func isHelp(arg string) bool {
+	return arg == "-h" || arg == "--help"
 }

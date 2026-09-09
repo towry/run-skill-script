@@ -104,7 +104,11 @@ func runtimeFromFile(file string) string {
 }
 
 func PrintScripts(w io.Writer, name, dir string, meta *Meta) error {
-	fmt.Fprintf(w, "%s  %s\n", name, dir)
+	fmt.Fprintf(w, "Usage: run-skill-script %s <script> [args...]\n", name)
+	fmt.Fprintf(w, "Skill: %s\n", name)
+	fmt.Fprintf(w, "Path:  %s\n", dir)
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Scripts:")
 	fmt.Fprintln(w, formatScripts(meta))
 	return nil
 }

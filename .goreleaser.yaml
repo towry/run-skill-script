@@ -24,6 +24,7 @@ archives:
   - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
     formats:
       - tar.gz
+    wrap_in_directory: false
 
 checksum:
   name_template: checksums.txt
