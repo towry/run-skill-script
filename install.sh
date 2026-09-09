@@ -2,14 +2,14 @@
 # Install run-skill-script from GitHub Releases into ~/.local/bin by default.
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/towry/run-skill-script/main/install.sh | bash
-#   RUN_SKILL_SCRIPT_VERSION=v0.1.0 bash install.sh
+#   RUN_SKILL_SCRIPT_VERSION=v1.0.0 bash install.sh
 #   PREFIX=/usr/local bash install.sh
 set -euo pipefail
 
 REPO="${RUN_SKILL_SCRIPT_REPO:-towry/run-skill-script}"
 PREFIX="${PREFIX:-${HOME}/.local}"
 BIN_DIR="${RUN_SKILL_SCRIPT_BIN_DIR:-${PREFIX}/bin}"
-VERSION="${RUN_SKILL_SCRIPT_VERSION:-}"
+VERSION="${RUN_SKILL_SCRIPT_VERSION:-latest}"
 BINARY_NAME="run-skill-script"
 
 die() {
@@ -37,14 +37,12 @@ arch_name() {
 	esac
 }
 
-latest_tag() {
-	local url="https://api.github.com/repos/${REPO}/releases/latest"
-	local json
-	json="$(curl -fsSL "${url}")" || die "failed to fetch ${url}"
-	local tag
-	tag="$(printf '%s' "${json}" | sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
-	[[ -n "${tag}" && "${tag}" != "null" ]] || die "no GitHub release found for ${REPO}. Publish a vX.Y.Z tag first."
-	printf '%s\n' "${tag}"
+download() {
+	local url="$1"
+	local dest="$2"
+	if ! curl -fsSL --retry 3 --retry-delay 1 -o "${dest}" "${url}"; then
+		die "failed to download ${url}"
+	fi
 }
 
 need curl
@@ -55,21 +53,27 @@ need uname
 OS="$(os_name)"
 ARCH="$(arch_name)"
 if [[ -z "${VERSION}" ]]; then
-	VERSION="$(latest_tag)"
+	VERSION="latest"
 fi
-case "${VERSION}" in
-v*) ;;
-*) VERSION="v${VERSION}" ;;
-esac
+if [[ "${VERSION}" != "latest" ]]; then
+	case "${VERSION}" in
+	v*) ;;
+	*) VERSION="v${VERSION}" ;;
+	esac
+fi
 
 ARCHIVE="${BINARY_NAME}_${OS}_${ARCH}.tar.gz"
-BASE="https://github.com/${REPO}/releases/download/${VERSION}"
+if [[ "${VERSION}" == "latest" ]]; then
+	BASE="https://github.com/${REPO}/releases/latest/download"
+else
+	BASE="https://github.com/${REPO}/releases/download/${VERSION}"
+fi
 TMP="$(mktemp -d)"
 trap 'rm -rf "${TMP}"' EXIT
 
 echo "installing ${BINARY_NAME} ${VERSION} (${OS}/${ARCH}) to ${BIN_DIR}"
-curl -fsSL "${BASE}/${ARCHIVE}" -o "${TMP}/${ARCHIVE}"
-curl -fsSL "${BASE}/checksums.txt" -o "${TMP}/checksums.txt"
+download "${BASE}/${ARCHIVE}" "${TMP}/${ARCHIVE}"
+download "${BASE}/checksums.txt" "${TMP}/checksums.txt"
 
 if command -v sha256sum >/dev/null 2>&1; then
 	(cd "${TMP}" && sha256sum -c --ignore-missing checksums.txt)
