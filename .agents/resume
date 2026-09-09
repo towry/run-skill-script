@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Fast wake hook: do not install software. Confirm the pinned Go toolchain is
+# still on disk so a broken snapshot is visible in resume.log.
+
+GO_ROOT="${HOME}/.local/go"
+
+if [[ ! -x "${GO_ROOT}/bin/go" ]]; then
+	echo "resume: ${GO_ROOT}/bin/go is missing; rerun .agents/setup" >&2
+	exit 1
+fi
+
+"${GO_ROOT}/bin/go" version

@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Install a pinned official Go toolchain and put it on login-shell PATH.
+# Idempotent: a warm snapshot should skip the tarball download.
+
+GO_VERSION="1.27.1"
+GO_ROOT="${HOME}/.local/go"
+GO_CACHE="${HOME}/.cache/go-install"
+PROFILE_MARKER="# run-skill-script Go toolchain"
+
+step() {
+	local name="$1"
+	shift
+	echo "==> ${name}"
+	local start now
+	start="$(date +%s)"
+	"$@"
+	now="$(date +%s)"
+	echo "    done in $((now - start))s"
+}
+
+goarch() {
+	case "$(uname -m)" in
+	x86_64) echo amd64 ;;
+	aarch64 | arm64) echo arm64 ;;
+	*)
+		echo "unsupported architecture: $(uname -m)" >&2
+		exit 1
+		;;
+	esac
+}
+
+go_sha256() {
+	# Official checksums from https://go.dev/dl/?mode=json for go1.27.1.
+	case "$1" in
+	amd64) echo 63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445 ;;
+	arm64) echo 3450b45a3f9ee8568792736a5c5e70a1f2e9b36c35a8f74958c03e51d7d92bec ;;
+	*)
+		echo "no checksum for GOARCH=$1" >&2
+		exit 1
+		;;
+	esac
+}
+
+go_already_installed() {
+	[[ -x "${GO_ROOT}/bin/go" ]] || return 1
+	local current
+	current="$("${GO_ROOT}/bin/go" env GOVERSION 2>/dev/null || true)"
+	[[ "${current}" == "go${GO_VERSION}" ]]
+}
+
+install_go() {
+	if go_already_installed; then
+		echo "Go ${GO_VERSION} already installed at ${GO_ROOT}"
+		return 0
+	fi
+
+	local arch tarball url sha dest tmp
+	arch="$(goarch)"
+	tarball="go${GO_VERSION}.linux-${arch}.tar.gz"
+	url="https://go.dev/dl/${tarball}"
+	sha="$(go_sha256 "${arch}")"
+	dest="${GO_CACHE}/${tarball}"
+	mkdir -p "${GO_CACHE}"
+
+	if [[ -f "${dest}" ]]; then
+		echo "${sha}  ${dest}" | sha256sum -c -
+	else
+		echo "downloading ${url}"
+		curl -fsSL "${url}" -o "${dest}.partial"
+		echo "${sha}  ${dest}.partial" | sha256sum -c -
+		mv "${dest}.partial" "${dest}"
+	fi
+
+	tmp="$(mktemp -d)"
+	tar -C "${tmp}" -xzf "${dest}"
+	rm -rf "${GO_ROOT}"
+	mkdir -p "$(dirname "${GO_ROOT}")"
+	mv "${tmp}/go" "${GO_ROOT}"
+	rmdir "${tmp}"
+	echo "installed $("${GO_ROOT}/bin/go" version)"
+}
+
+link_go_on_path() {
+	mkdir -p "${HOME}/.local/bin"
+	ln -sfn "${GO_ROOT}/bin/go" "${HOME}/.local/bin/go"
+	ln -sfn "${GO_ROOT}/bin/gofmt" "${HOME}/.local/bin/gofmt"
+}
+
+ensure_login_path() {
+	local profile="${HOME}/.bash_profile"
+	touch "${profile}"
+	if grep -Fqx "${PROFILE_MARKER}" "${profile}" 2>/dev/null; then
+		echo "login PATH already configured"
+		return 0
+	fi
+	cat >>"${profile}" <<'EOF'
+
+# run-skill-script Go toolchain
+if [ -d "$HOME/.local/go/bin" ]; then
+  case ":$PATH:" in
+    *:"$HOME/.local/go/bin":*) ;;
+    *) export PATH="$HOME/.local/go/bin:$PATH" ;;
+  esac
+fi
+export GOPATH="${GOPATH:-$HOME/go}"
+if [ -d "$GOPATH/bin" ]; then
+  case ":$PATH:" in
+    *:"$GOPATH/bin":*) ;;
+    *) export PATH="$GOPATH/bin:$PATH" ;;
+  esac
+fi
+export GOTOOLCHAIN="${GOTOOLCHAIN:-local}"
+EOF
+	echo "appended Go PATH to ${profile}"
+}
+
+write_agent_notes() {
+	local dest="${HOME}/.config/amp/AGENTS.md"
+	local marker="<!-- run-skill-script go toolchain -->"
+	mkdir -p "$(dirname "${dest}")"
+	touch "${dest}"
+	if grep -Fq "${marker}" "${dest}" 2>/dev/null; then
+		echo "agent notes already present"
+		return 0
+	fi
+	{
+		printf '\n%s\n' "${marker}"
+		cat <<'EOF'
+# Go toolchain
+
+- Official Go is at $HOME/.local/go. Login shells get $HOME/.local/go/bin on PATH; `go` is also linked from $HOME/.local/bin.
+- Build with `go build -o run-skill-script .` and test with `go test ./...`.
+- `run-skill-script` only runs scripts declared in a skill's `meta.json`. If that file is missing, it exits instead of guessing a path.
+EOF
+	} >>"${dest}"
+}
+
+warmup_modules() {
+	export PATH="${GO_ROOT}/bin:${PATH}"
+	export GOPATH="${GOPATH:-${HOME}/go}"
+	export GOTOOLCHAIN=local
+	go version
+	if [[ -f go.mod ]]; then
+		go mod download
+	fi
+}
+
+step "install Go ${GO_VERSION}" install_go
+step "symlink go on PATH" link_go_on_path
+step "login-shell PATH" ensure_login_path
+step "agent notes" write_agent_notes
+step "module cache" warmup_modules
+
+echo "setup complete: $("${GO_ROOT}/bin/go" version)"
