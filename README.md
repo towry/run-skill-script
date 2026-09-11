@@ -30,8 +30,26 @@ run-skill-script <skill> --help
 run-skill-script --list-skills
 ```
 
-Skill lookup follows Amp's skill directories, including hashed cache dirs such as `git-jj@c4b90d11`.
-It also looks in plugin caches at `~/.cache/amp/global-plugins/<host>/<scope>/<plugin@hash>/skills/`.
+`<skill>` is a directory name such as `git-jj` or `task-notes`, not a file path. See [docs/skill-meta.md](docs/skill-meta.md) for `meta.json`.
+
+## Skill search paths
+
+The first match wins. Duplicate names later in the list are ignored.
+
+Hashed directories such as `git-jj@c4b90d11` match the skill name `git-jj`. If several hashed copies exist in the same root, the newest directory wins.
+
+| Order | Path |
+|---|---|
+| 1 | Directories in `RUN_SKILL_SCRIPT_SKILLS` (the OS path list, `:` on Unix) |
+| 2 | `~/.config/agents/skills` |
+| 3 | `~/.agents/skills` |
+| 4 | `~/.config/amp/skills` |
+| 5 | `<dir>/.agents/skills` and `<dir>/.claude/skills`, walking from the current directory toward `/`, then the same walk from `AMP_WORKING_DIRECTORY` |
+| 6 | `~/.claude/skills` |
+| 7 | `~/.cache/amp/global-plugins/<host>/<scope>/<plugin@hash>/skills` (plugin dirs newest first) |
+| 8 | `~/.cache/amp/global-skills/<host>/<scope>` |
+
+The plugin cache root is the plugin's `skills/` directory, not the plugin directory. `find-hot-skill@09a84769.../skills/task-notes` matches `task-notes`. `find-hot-skill@09a84769...` itself is not a skill.
 
 ## Release
 
