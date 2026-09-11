@@ -31,6 +31,7 @@ run-skill-script --list-skills
 ```
 
 Skill lookup follows Amp's skill directories, including hashed cache dirs such as `git-jj@c4b90d11`.
+It also looks in plugin caches at `~/.cache/amp/global-plugins/<host>/<scope>/<plugin@hash>/skills/`.
 
 ## Release
 

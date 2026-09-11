@@ -134,7 +134,15 @@ func (l Lookup) roots() []string {
 }
 
 func addCacheRoots(home string, add func(string)) {
-	base := filepath.Join(home, ".cache", "amp", "global-skills")
+	walkHostScope(filepath.Join(home, ".cache", "amp", "global-plugins"), func(scopePath string) {
+		addPluginSkillRoots(scopePath, add)
+	})
+	walkHostScope(filepath.Join(home, ".cache", "amp", "global-skills"), func(scopePath string) {
+		add(scopePath)
+	})
+}
+
+func walkHostScope(base string, fn func(scopePath string)) {
 	hosts, err := os.ReadDir(base)
 	if err != nil {
 		return
@@ -150,9 +158,26 @@ func addCacheRoots(home string, add func(string)) {
 		}
 		for _, scope := range scopes {
 			if scope.IsDir() {
-				add(filepath.Join(hostPath, scope.Name()))
+				fn(filepath.Join(hostPath, scope.Name()))
 			}
 		}
+	}
+}
+
+func addPluginSkillRoots(scopePath string, add func(string)) {
+	entries, err := os.ReadDir(scopePath)
+	if err != nil {
+		return
+	}
+	var plugins []os.DirEntry
+	for _, e := range entries {
+		if e.IsDir() && isDir(filepath.Join(scopePath, e.Name(), "skills")) {
+			plugins = append(plugins, e)
+		}
+	}
+	sortNewestFirst(scopePath, plugins)
+	for _, p := range plugins {
+		add(filepath.Join(scopePath, p.Name(), "skills"))
 	}
 }
 
@@ -195,17 +220,21 @@ func findNamed(root, name string) (string, bool) {
 	if len(matches) == 0 {
 		return "", false
 	}
-	sort.Slice(matches, func(i, j int) bool {
-		pi := filepath.Join(root, matches[i].Name())
-		pj := filepath.Join(root, matches[j].Name())
+	sortNewestFirst(root, matches)
+	return filepath.Join(root, matches[0].Name()), true
+}
+
+func sortNewestFirst(root string, entries []os.DirEntry) {
+	sort.Slice(entries, func(i, j int) bool {
+		pi := filepath.Join(root, entries[i].Name())
+		pj := filepath.Join(root, entries[j].Name())
 		si, _ := os.Stat(pi)
 		sj, _ := os.Stat(pj)
 		if si != nil && sj != nil && !si.ModTime().Equal(sj.ModTime()) {
 			return si.ModTime().After(sj.ModTime())
 		}
-		return matches[i].Name() > matches[j].Name()
+		return entries[i].Name() > entries[j].Name()
 	})
-	return filepath.Join(root, matches[0].Name()), true
 }
 
 func skillNameFromDir(dir string) string {
