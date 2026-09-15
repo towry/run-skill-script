@@ -136,6 +136,90 @@ func TestFindPrefersPluginCacheOverHashedSkill(t *testing.T) {
 	}
 }
 
+func TestFindHotSkillCache(t *testing.T) {
+	home := t.TempDir()
+	skillDir := filepath.Join(home, ".cache", "find-hot-skill", "skills", "task-notes")
+	if err := os.MkdirAll(skillDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Lookup{Home: home, Cwd: t.TempDir()}.Find("task-notes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != skillDir {
+		t.Fatalf("Find = %s, want %s", got, skillDir)
+	}
+}
+
+func TestFindPrefersPluginCacheOverFindHotSkillCache(t *testing.T) {
+	home := t.TempDir()
+	pluginSkill := filepath.Join(home, ".cache", "amp", "global-plugins", "ampcode.com", "user", "find-hot-skill@09a84769", "skills", "task-notes")
+	hotSkill := filepath.Join(home, ".cache", "find-hot-skill", "skills", "task-notes")
+	if err := os.MkdirAll(pluginSkill, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(hotSkill, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Lookup{Home: home, Cwd: t.TempDir()}.Find("task-notes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != pluginSkill {
+		t.Fatalf("Find = %s, want plugin skill %s", got, pluginSkill)
+	}
+}
+
+func TestFindPrefersFindHotSkillCacheOverHashedSkill(t *testing.T) {
+	home := t.TempDir()
+	hotSkill := filepath.Join(home, ".cache", "find-hot-skill", "skills", "git-jj")
+	hashed := filepath.Join(home, ".cache", "amp", "global-skills", "ampcode.com", "user", "git-jj@deadbeef")
+	if err := os.MkdirAll(hotSkill, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(hashed, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Lookup{Home: home, Cwd: t.TempDir()}.Find("git-jj")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != hotSkill {
+		t.Fatalf("Find = %s, want find-hot-skill cache %s", got, hotSkill)
+	}
+}
+
+func TestFindDoesNotUseFindHotSkillTmpDir(t *testing.T) {
+	home := t.TempDir()
+	tmpSkill := filepath.Join(home, ".cache", "find-hot-skill", "skills", "task-notes.tmp")
+	if err := os.MkdirAll(tmpSkill, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	_, err := Lookup{Home: home, Cwd: t.TempDir()}.Find("task-notes")
+	if err == nil {
+		t.Fatal("Find(task-notes) should miss; only task-notes.tmp exists")
+	}
+}
+
+func TestListFindHotSkillCacheSkipsTmpDirs(t *testing.T) {
+	home := t.TempDir()
+	skillDir := filepath.Join(home, ".cache", "find-hot-skill", "skills", "task-notes")
+	tmpDir := filepath.Join(home, ".cache", "find-hot-skill", "skills", "task-notes.tmp")
+	if err := os.MkdirAll(skillDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(tmpDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Lookup{Home: home, Cwd: t.TempDir()}.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].Name != "task-notes" || got[0].Path != skillDir {
+		t.Fatalf("List = %#v, want task-notes at %s", got, skillDir)
+	}
+}
+
 func TestFindNewestHashedSkill(t *testing.T) {
 	home := t.TempDir()
 	root := filepath.Join(home, ".cache", "amp", "global-skills", "ampcode.com", "user")

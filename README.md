@@ -47,9 +47,10 @@ Hashed directories such as `git-jj@c4b90d11` match the skill name `git-jj`. If s
 | 5 | `<dir>/.agents/skills` and `<dir>/.claude/skills`, walking from the current directory toward `/`, then the same walk from `AMP_WORKING_DIRECTORY` |
 | 6 | `~/.claude/skills` |
 | 7 | `~/.cache/amp/global-plugins/<host>/<scope>/<plugin@hash>/skills` (plugin dirs newest first) |
-| 8 | `~/.cache/amp/global-skills/<host>/<scope>` |
+| 8 | `~/.cache/find-hot-skill/skills` |
+| 9 | `~/.cache/amp/global-skills/<host>/<scope>` |
 
-The plugin cache root is the plugin's `skills/` directory, not the plugin directory. `find-hot-skill@09a84769.../skills/task-notes` matches `task-notes`. `find-hot-skill@09a84769...` itself is not a skill.
+The plugin cache root is the plugin's `skills/` directory, not the plugin directory. `find-hot-skill@09a84769.../skills/task-notes` matches `task-notes`. `find-hot-skill@09a84769...` itself is not a skill. Directories ending in `.tmp` are ignored.
 
 ## Release
 

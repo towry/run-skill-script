@@ -137,6 +137,7 @@ func addCacheRoots(home string, add func(string)) {
 	walkHostScope(filepath.Join(home, ".cache", "amp", "global-plugins"), func(scopePath string) {
 		addPluginSkillRoots(scopePath, add)
 	})
+	add(filepath.Join(home, ".cache", "find-hot-skill", "skills"))
 	walkHostScope(filepath.Join(home, ".cache", "amp", "global-skills"), func(scopePath string) {
 		add(scopePath)
 	})
@@ -203,7 +204,7 @@ func walkUp(start string) []string {
 
 func findNamed(root, name string) (string, bool) {
 	exact := filepath.Join(root, name)
-	if isDir(exact) {
+	if isDir(exact) && skillNameFromDir(name) != "" {
 		return exact, true
 	}
 	entries, err := os.ReadDir(root)
@@ -239,6 +240,9 @@ func sortNewestFirst(root string, entries []os.DirEntry) {
 
 func skillNameFromDir(dir string) string {
 	if dir == "" || strings.HasPrefix(dir, ".") {
+		return ""
+	}
+	if strings.HasSuffix(dir, ".tmp") {
 		return ""
 	}
 	if i := strings.IndexByte(dir, '@'); i > 0 {
