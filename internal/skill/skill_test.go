@@ -138,7 +138,7 @@ func TestFindPrefersPluginCacheOverHashedSkill(t *testing.T) {
 
 func TestFindHotSkillCache(t *testing.T) {
 	home := t.TempDir()
-	skillDir := filepath.Join(home, ".cache", "find-hot-skill", "skills", "task-notes")
+	skillDir := filepath.Join(home, ".cache", "amp", "plugin-cache", "find-hot-skill", "skills", "task-notes")
 	if err := os.MkdirAll(skillDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -154,7 +154,7 @@ func TestFindHotSkillCache(t *testing.T) {
 func TestFindPrefersPluginCacheOverFindHotSkillCache(t *testing.T) {
 	home := t.TempDir()
 	pluginSkill := filepath.Join(home, ".cache", "amp", "global-plugins", "ampcode.com", "user", "find-hot-skill@09a84769", "skills", "task-notes")
-	hotSkill := filepath.Join(home, ".cache", "find-hot-skill", "skills", "task-notes")
+	hotSkill := filepath.Join(home, ".cache", "amp", "plugin-cache", "find-hot-skill", "skills", "task-notes")
 	if err := os.MkdirAll(pluginSkill, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -172,7 +172,7 @@ func TestFindPrefersPluginCacheOverFindHotSkillCache(t *testing.T) {
 
 func TestFindPrefersFindHotSkillCacheOverHashedSkill(t *testing.T) {
 	home := t.TempDir()
-	hotSkill := filepath.Join(home, ".cache", "find-hot-skill", "skills", "git-jj")
+	hotSkill := filepath.Join(home, ".cache", "amp", "plugin-cache", "find-hot-skill", "skills", "git-jj")
 	hashed := filepath.Join(home, ".cache", "amp", "global-skills", "ampcode.com", "user", "git-jj@deadbeef")
 	if err := os.MkdirAll(hotSkill, 0o755); err != nil {
 		t.Fatal(err)
@@ -191,7 +191,7 @@ func TestFindPrefersFindHotSkillCacheOverHashedSkill(t *testing.T) {
 
 func TestFindDoesNotUseFindHotSkillTmpDir(t *testing.T) {
 	home := t.TempDir()
-	tmpSkill := filepath.Join(home, ".cache", "find-hot-skill", "skills", "task-notes.tmp")
+	tmpSkill := filepath.Join(home, ".cache", "amp", "plugin-cache", "find-hot-skill", "skills", "task-notes.tmp")
 	if err := os.MkdirAll(tmpSkill, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -203,8 +203,8 @@ func TestFindDoesNotUseFindHotSkillTmpDir(t *testing.T) {
 
 func TestListFindHotSkillCacheSkipsTmpDirs(t *testing.T) {
 	home := t.TempDir()
-	skillDir := filepath.Join(home, ".cache", "find-hot-skill", "skills", "task-notes")
-	tmpDir := filepath.Join(home, ".cache", "find-hot-skill", "skills", "task-notes.tmp")
+	skillDir := filepath.Join(home, ".cache", "amp", "plugin-cache", "find-hot-skill", "skills", "task-notes")
+	tmpDir := filepath.Join(home, ".cache", "amp", "plugin-cache", "find-hot-skill", "skills", "task-notes.tmp")
 	if err := os.MkdirAll(skillDir, 0o755); err != nil {
 		t.Fatal(err)
 	}

@@ -137,7 +137,7 @@ func addCacheRoots(home string, add func(string)) {
 	walkHostScope(filepath.Join(home, ".cache", "amp", "global-plugins"), func(scopePath string) {
 		addPluginSkillRoots(scopePath, add)
 	})
-	add(filepath.Join(home, ".cache", "find-hot-skill", "skills"))
+	add(filepath.Join(home, ".cache", "amp", "plugin-cache", "find-hot-skill", "skills"))
 	walkHostScope(filepath.Join(home, ".cache", "amp", "global-skills"), func(scopePath string) {
 		add(scopePath)
 	})
